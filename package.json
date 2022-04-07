@@ -1,0 +1,28 @@
+{
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.0",
+    "express": "^4.17.3",
+    "express-list-endpoints": "^6.0.0",
+    "fs": "^0.0.1-security",
+    "mongodb": "^4.4.1",
+    "mongoose": "^6.2.9",
+    "multer": "^1.4.4",
+    "node-nlp": "^4.23.4",
+    "nodemon": "^2.0.15",
+    "statistics.js": "^1.0.0",
+    "string-similarity": "^4.0.4"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js"
+  },
+  "name": "poetry-cms-be",
+  "version": "1.0.0",
+  "main": "server.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "type": "module"
+}
