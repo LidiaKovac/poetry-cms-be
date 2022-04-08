@@ -15,6 +15,16 @@ poemRoute.get("/", async (req, res, next) => {
   }
 })
 
+poemRoute.get("/single/:id", async (req, res, next) => {
+  try {
+    let {id} = req.params
+    let poem = await Poem.findById(id)
+    res.send(poem)
+  } catch (error) {
+    next(error)
+  }
+})
+
 poemRoute.get("/stats", async (req, res, next) => {
   try {
     let poems = await Poem.find()
@@ -175,7 +185,9 @@ poemRoute.put("/clean", async(req,res,next)=> {
       .replaceAll("<br>", "\n")
       .replaceAll("<br/ >", "\n")
       .replaceAll("<br/>", "\n")
+      p.title = getCapitalizedName(p.title)
       p.save()
+
     })
     res.send("done")
   } catch (error) {
