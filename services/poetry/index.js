@@ -26,23 +26,23 @@ poemRoute.get("/stats", async (req, res, next) => {
           //if the word was already added
           results[word].occurences += 1
         } else {
-          let closestWord = Object.keys(results).filter(
-            (sw) => compareTwoStrings(sw, word) >= 0.8
-          )
-          if (closestWord.length > 0) {
-            results[closestWord[0]].occurences += 1
-          } else {
-            results[word] = { occurences: 1 }
-          }
+          results[word] = { occurences: 1 }
+
+          // let closestWord = Object.keys(results).filter(
+          //   (sw) => compareTwoStrings(sw, word) >= 0.8
+          // )
+
+          // if (closestWord.length > 0) {
+          //   results[closestWord[0]].occurences += 1
+          // } else {
+          //   results[word] = { occurences: 1 }
+          // }
         }
       }
     }
-    let max = { word: "", occurences: 0 }
+    
     let listedResults = []
     for (const res of Object.keys(results)) {
-      // if (results[res].occurences > max.occurences) {
-      //   max = { word: res, occurences: results[res].occurences }
-      // } else continue
       listedResults.push({ word: res, occurences: results[res].occurences })
     }
     listedResults.sort((a,b)=> b.occurences - a.occurences)
@@ -94,14 +94,13 @@ poemRoute.post("/text", multer().single("txt"), async (req, res, next) => {
   }
 })
 
-poemRoute.post("/textMulti", multer().array("txt"), async (req, res, next) => {
+poemRoute.post("/textMulti", multer().fields([{name: "txt"}, {name: "src"}, {name: "year"}]), async (req, res, next) => {
   try {
     let { files } = req
     let added = []
     let counter = 0
-    for (const file of files) {
+    for (const file of files.txt) {
       let fileToString = file.buffer.toString()
-      console.log(/\r|\n/.exec(fileToString))
       let title
       let text
 
@@ -115,15 +114,21 @@ poemRoute.post("/textMulti", multer().array("txt"), async (req, res, next) => {
         title = getCapitalizedName(
           fileToString.split("<h1>")[1].split("</h1>")[0]
         )
-      } else {
+      } else if(fileToString.includes("<b>")) {
+        title = getCapitalizedName(
+          fileToString.split("<b>")[1].split("</b>")[0]
+        )
+      }else {
         title = fileToString?.split("\n")[0] || "Untitled"
       }
       if (fileToString.includes("<poem>")) {
         text = fileToString.split("<poem>")[1].split("</poem>")[0]
       } else if (fileToString.length > 0) {
         text = fileToString
+          .replaceAll("<sp>", "")
+          .replaceAll("</sp>", "")
       }
-      let newPoem = new Poem({ author: req.query.author, text: text, title })
+      let newPoem = new Poem({ author: req.query.author, text: text, title, source: req.body.src, year: req.body.year })
       await newPoem.save()
       added.push(newPoem._id)
       counter += 1
@@ -134,19 +139,22 @@ poemRoute.post("/textMulti", multer().array("txt"), async (req, res, next) => {
   }
 })
 
-poemRoute.post("/html", multer().array("html"), async (req, res, next) => {
+poemRoute.post("/html", multer().fields([{name: "html"}, {name: "src"}, {name: "year"}]), async (req, res, next) => {
   try {
     let { files } = req
+    console.log(req.body);
     let added = []
     let counter = 0
-    for (const file of files) {
+    for (const file of files.html) {
       let fileToString = file.buffer.toString()
       let title = fileToString.split("<h1>")[1].split("</h1>")[0]
       let text = fileToString
         .split("<p>")[1]
         .split("</p>")[0]
+        .replaceAll("<p>", "<br><br>")
         .replaceAll("<br>", "\n")
-      let newPoem = new Poem({ author: req.query.author, text, title })
+        .replaceAll("<br/ >", "\n")
+      let newPoem = new Poem({ author: req.query.author, text: text, title, source: req.body.src, year: req.body.year })
       await newPoem.save()
       added.push(newPoem._id)
       counter += 1
@@ -154,5 +162,23 @@ poemRoute.post("/html", multer().array("html"), async (req, res, next) => {
     res.send({ added, counter })
   } catch (error) {
     next(error)
+  }
+})
+
+poemRoute.put("/clean", async(req,res,next)=> {
+  try {
+    
+    let allPoems = await Poem.find()
+    allPoems.forEach(p => {
+      p.text = p.text
+      .replaceAll("<br", "\n")
+      .replaceAll("<br>", "\n")
+      .replaceAll("<br/ >", "\n")
+      .replaceAll("<br/>", "\n")
+      p.save()
+    })
+    res.send("done")
+  } catch (error) {
+    
   }
 })
