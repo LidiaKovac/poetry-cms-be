@@ -20,7 +20,8 @@ const poemSchema = new mongoose.Schema({
     year: {
         type: String,
         required: false
-    }
+    },
+    tags: [{ type: mongoose.Types.ObjectId, ref: 'Tag' }]
 })
 
 export default mongoose.model("Poem", poemSchema)
