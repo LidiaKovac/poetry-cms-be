@@ -65,10 +65,11 @@ poemRoute.post("/stats", async (req, res, next) => {
       let words = cleanText(poem.text.toLowerCase())
       for (const word of words) {
         let tags = await Tag.find()
-        let wordsOnly = tags.map((t) => t.word)
+        let wordsOnly = tags.map((t) => t.word) //makes an array of all the words in the db already
 
         //checks if the tag is already in the database
         if (wordsOnly.includes(word)) {
+          //if the world exists already
           let foundWord = await Tag.findOne({ word })
           foundWord.overallOccurences += 1
           await foundWord.save()
@@ -76,6 +77,7 @@ poemRoute.post("/stats", async (req, res, next) => {
           let newTag = await new Tag({
             word,
             overallOccurences: 1,
+            yearlyOccurences: [],
             color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
               Math.random() * 255
             )}, ${Math.floor(Math.random() * 255)}, .3 )`,
@@ -115,19 +117,18 @@ poemRoute.post("/stats/years", async (req, res, next) => {
   try {
     console.log("Grab some coffee, this might take a while!")
     let poems = await Poem.find()
-    await Year.deleteMany({})
-    let years = [...new Set(poems.map(poem => poem.year))]
+    await Year.deleteMany({}) //deletes all from the years collection
+    let years = [...new Set(poems.map((poem) => poem.year))]
     // let years = await Year.find()
     console.log("Phase 1, resetting the counter and dividing by year...")
     for (const year of years) {
+      //creates a new document for each year
       let newYear = await Year.create({
         year: year,
         poems: [
-          ...poems
-            .filter((poem) => poem.year === year)
-            .map((poem) => poem._id),
+          ...poems.filter((poem) => poem.year === year).map((poem) => poem._id),
         ],
-        tags: []
+        tags: [],
       })
       await newYear.save()
     }
@@ -137,35 +138,58 @@ poemRoute.post("/stats/years", async (req, res, next) => {
     let populatedYears = await Year.find().populate({
       path: "poems",
     })
-    console.log(populatedYears);
+    // console.log(populatedYears);
     for (const year of populatedYears) {
+      
+      //for each year
       for (const poem of year.poems) {
-        let words = cleanText(poem.text.toLowerCase())
+        //for each poem in that year
+        let words = cleanText(poem.text.toLowerCase()) //return a clean wordlist
         for (const word of words) {
-          let years = await Year.find()
-          //checks if the tag is already in the database
-          if (wordsOnly.includes(word)) {
+          //for each word in the poem
+          let yearTags = year.tags.map((tag) => tag.word) //the world contained in that year
+
+          if (yearTags.includes(word)) {
+            //if the tag is already in the year
             let foundWord = await Tag.findOne({ word })
-            foundWord.occurences += 1
+            console.log(foundWord);
+            foundWord.yearlyOccurences.forEach((occ)=> {
+              if(occ.year === year.year) {
+                occ.occurences +=1
+              }
+            })
             await foundWord.save()
           } else {
-            let newTag = await new Tag({
-              word,
-              occurences: 1,
-              color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
-                Math.random() * 255
-              )}, ${Math.floor(Math.random() * 255)}, .3 )`,
-            })
-            await newTag.save()
-          }
-          for (const tag of tags) {
-            if (words.includes(tag.word) && !poem.tags.includes(tag._id)) {
-              poem.tags.push(tag._id)
-              await poem.save()
+            //search for it
+            
+            let foundTag = await Tag.findOne({ word })
+            if (foundTag) { //if you find a tag with that number
+              foundTag.yearlyOccurences.forEach((occ)=> {
+                if(occ.year === year.year) {
+                  occ.occurences +=1
+                }
+              })
+              year.tags.push(foundTag._id) //add it to the list
+              // foundTag.yearlyOccurences = [...foundTag.yearlyOccurences, {year: year.year, occurences:} }] //counts occurences
+              await year.save()
+            } else {
+              let newTag = await new Tag({
+                word,
+                yearlyOccurences: [{
+                  year: year.year,
+                  occurences: 1,
+                }],
+                overallOccurences: 1,
+                color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
+                  Math.random() * 255
+                )}, ${Math.floor(Math.random() * 255)}, .3 )`,
+              })
+              await newTag.save()
             }
           }
         }
       }
+      // console.log(year);
     }
     console.log("Phase 2 ✅")
     // let listedResults = []

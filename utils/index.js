@@ -87,11 +87,17 @@ export const cleanText = (text) => {
     .replaceAll("äro", "är")
     .replaceAll("<dt>", " ")
     .replaceAll("<dl>", " ")
+    .replaceAll("„", "")
+    .replaceAll('"', "")
+    .replaceAll('1', "")
+    .replaceAll('0', "")
+
     // .replaceAll("<br", "")
     .split(" ")
     .filter((word) => word.length > 1)
     // .filter((word) => !wordsToIgnore.includes(word))
     .filter((word) => isNaN(word))
+
     
     let stemmer = new StemmerSv()
     stemmer.stopwords = new StopwordsSv()
