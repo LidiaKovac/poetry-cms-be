@@ -4,39 +4,71 @@ import multer from "multer"
 import Poem from "./schema.js"
 import Tag from "../tags/schema.js"
 import Year from "../years/schema.js"
-
+import q2m from "query-to-mongo"
 export const poemRoute = Router()
 
 poemRoute.get("/", async (req, res, next) => {
   try {
-    let poems = await Poem.find().populate({
+    let pageSize = 50
+    let { sort, title, source, tags, page } = req.query
+    // console.log(req.query)
+    let field
+    let order
+    if(sort) {
+      field = sort.split("_")[0]
+      order = (sort.split("_")[1] === "asc") ? 1 : -1
+    }
+    console.log(sort, field, order);
+    let poems = await Poem.find(
+      {
+        title: {
+          $regex: title || "",
+          $options: "i",
+        },
+        source: {
+          $regex: source || "",
+          $options: "i",
+        },
+        tags: tags ? {
+          $all: tags.split(" ")
+        } : {$exists: true}
+      },
+      null,
+      {
+        sort: sort ? { [field]: order  } : {},
+        limit: pageSize,
+        offset: page > 1 ? pageSize + page : 0,
+      }
+    ).populate({
       path: "tags",
       select: ["word", "color"],
       options: { limit: 5 },
     })
-    let { query } = req
-    let filtered = []
-    if (query.tag) {
-      filtered = poems.filter((poem) => {
-        let isMatch = true
+    // let { query } = req
+    // let filtered = []
+    // if (query.tag) {
+    //   filtered = poems.filter((poem) => {
+    //     let isMatch = true
 
-        for (const tag of query.tag.split(" ")) {
-          if (poem.tags.map((t) => t.word).includes(tag)) {
-            continue
-          } else isMatch = false
-        }
-        return isMatch
-      })
-    }
-    res.send(filtered.length > 0 ? filtered : poems)
+    //     for (const tag of query.tag.split(" ")) {
+    //       if (poem.tags.map((t) => t.word).includes(tag)) {
+    //         continue
+    //       } else isMatch = false
+    //     }
+    //     return isMatch
+    //   })
+    // }
+    res.send(poems)
   } catch (error) {
     next(error)
   }
 })
 
-poemRoute.get("/source/:sourceName", async(req,res,next)=> {
+poemRoute.get("/source/:sourceName", async (req, res, next) => {
   try {
-    let poems = await Poem.find({source: req.params.sourceName.replaceAll("%20", " ")}).populate({
+    let poems = await Poem.find({
+      source: req.params.sourceName.replaceAll("%20", " "),
+    }).populate({
       path: "tags",
       select: ["word", "color"],
       options: { limit: 5 },
@@ -109,7 +141,7 @@ poemRoute.post("/stats", async (req, res, next) => {
       }
     }
     console.log("Phase 2 ✅")
-    
+
     res.send("done ✅")
   } catch (error) {
     next(error)
@@ -154,24 +186,26 @@ poemRoute.post("/stats/years", async (req, res, next) => {
       for (const poem of year.poems) {
         for (const tagId of poem.tags) {
           let tag = await Tag.findById(tagId)
-          if(tag.yearlyOccurences.filter(t => t.year === year.year).length > 0) {
+          if (
+            tag.yearlyOccurences.filter((t) => t.year === year.year).length > 0
+          ) {
             let words = cleanText(poem.text.toLowerCase())
             let counter = 0
-            words.forEach(w => {
-              if(w === tag.word) {
+            words.forEach((w) => {
+              if (w === tag.word) {
                 counter++
               }
-              console.log(counter);
+              console.log(counter)
             })
             for (const tagYear of tag.yearlyOccurences) {
-              if(tagYear.year === year.year) {
-                console.log(tagYear.year, year.year);
+              if (tagYear.year === year.year) {
+                console.log(tagYear.year, year.year)
                 tagYear.occurences = counter
-                console.log(tagYear);
+                console.log(tagYear)
               }
             }
           } else {
-            tag.yearlyOccurences.push({year: year.year, occurences: 1})
+            tag.yearlyOccurences.push({ year: year.year, occurences: 1 })
           }
 
           // console.log(tag);
@@ -195,14 +229,14 @@ poemRoute.get("/stats/years", async (req, res, next) => {
       {
         $group: {
           // _id: "$_id",
-          _id: "$year" ,
+          _id: "$year",
           poems: {
             $push: "$$ROOT",
           },
         },
       },
     ])
-    let cleanPoems = poemsByYear.map(poem => {
+    let cleanPoems = poemsByYear.map((poem) => {
       poem.year = poem._id
       delete poem._id
       return poem

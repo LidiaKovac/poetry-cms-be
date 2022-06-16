@@ -18,7 +18,7 @@ const poemSchema = new mongoose.Schema({
         required: true
     },
     year: {
-        type: String,
+        type: Number,
         required: false
     },
     tags: [{ type: mongoose.Types.ObjectId, ref: 'Tag' }]
