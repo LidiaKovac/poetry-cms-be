@@ -13,9 +13,9 @@ poemRoute.get("/", async (req, res, next) => {
     // console.log(req.query)
     let field
     let order
-    if(sort) {
+    if (sort) {
       field = sort.split("_")[0]
-      order = (sort.split("_")[1] === "asc") ? 1 : -1
+      order = sort.split("_")[1] === "asc" ? 1 : -1
     }
     let poems = await Poem.find(
       {
@@ -27,13 +27,15 @@ poemRoute.get("/", async (req, res, next) => {
           $regex: source || "",
           $options: "i",
         },
-        tags: tags ? {
-          $all: tags.split(" ")
-        } : {$exists: true}
+        tags: tags
+          ? {
+              $all: tags.split(" "),
+            }
+          : { $exists: true },
       },
       null,
       {
-        sort: sort ? { [field]: order  } : {},
+        sort: sort ? { [field]: order } : {},
         limit: pageSize,
         offset: page > 1 ? pageSize + page : 0,
       }
@@ -62,20 +64,6 @@ poemRoute.get("/", async (req, res, next) => {
   }
 })
 
-poemRoute.get("/source/:sourceName", async (req, res, next) => {
-  try {
-    let poems = await Poem.find({
-      source: req.params.sourceName.replaceAll("%20", " "),
-    }).populate({
-      path: "tags",
-      select: ["word", "color"],
-      options: { limit: 5 },
-    })
-    res.send(poems)
-  } catch (error) {
-    next(error)
-  }
-})
 
 poemRoute.get("/single/:id", async (req, res, next) => {
   try {
