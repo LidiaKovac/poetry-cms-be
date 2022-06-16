@@ -4,7 +4,6 @@ import multer from "multer"
 import Poem from "./schema.js"
 import Tag from "../tags/schema.js"
 import Year from "../years/schema.js"
-import q2m from "query-to-mongo"
 export const poemRoute = Router()
 
 poemRoute.get("/", async (req, res, next) => {
@@ -18,7 +17,6 @@ poemRoute.get("/", async (req, res, next) => {
       field = sort.split("_")[0]
       order = (sort.split("_")[1] === "asc") ? 1 : -1
     }
-    console.log(sort, field, order);
     let poems = await Poem.find(
       {
         title: {
