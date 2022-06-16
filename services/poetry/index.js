@@ -19,9 +19,8 @@ poemRoute.get("/", async (req, res, next) => {
     if (query.tag) {
       filtered = poems.filter((poem) => {
         let isMatch = true
-        console.log(query.tag.split(" "))
+
         for (const tag of query.tag.split(" ")) {
-          // console.log(tag);
           if (poem.tags.map((t) => t.word).includes(tag)) {
             continue
           } else isMatch = false
@@ -30,6 +29,19 @@ poemRoute.get("/", async (req, res, next) => {
       })
     }
     res.send(filtered.length > 0 ? filtered : poems)
+  } catch (error) {
+    next(error)
+  }
+})
+
+poemRoute.get("/source/:sourceName", async(req,res,next)=> {
+  try {
+    let poems = await Poem.find({source: req.params.sourceName.replaceAll("%20", " ")}).populate({
+      path: "tags",
+      select: ["word", "color"],
+      options: { limit: 5 },
+    })
+    res.send(poems)
   } catch (error) {
     next(error)
   }
@@ -54,6 +66,10 @@ poemRoute.post("/stats", async (req, res, next) => {
     let poems = await Poem.find()
     let tags = await Tag.find()
     console.log("Phase 1, resetting the counter...")
+    for (const poem of poems) {
+      poem.tags = []
+      await poem.save()
+    }
     for (const tag of tags) {
       tag.overallOccurences = 0
       await tag.save()
@@ -93,11 +109,7 @@ poemRoute.post("/stats", async (req, res, next) => {
       }
     }
     console.log("Phase 2 ✅")
-    // let listedResults = []
-    // for (const res of Object.keys(results)) {
-    //   listedResults.push({ word: res, occurences: results[res].occurences,color: results[res].color   })
-    // }
-    // listedResults.sort((a,b)=> b.occurences - a.occurences)
+    
     res.send("done ✅")
   } catch (error) {
     next(error)
@@ -116,88 +128,61 @@ poemRoute.get("/stats", async (req, res, next) => {
 poemRoute.post("/stats/years", async (req, res, next) => {
   try {
     console.log("Grab some coffee, this might take a while!")
-    let poems = await Poem.find()
-    await Year.deleteMany({}) //deletes all from the years collection
-    let years = [...new Set(poems.map((poem) => poem.year))]
-    // let years = await Year.find()
     console.log("Phase 1, resetting the counter and dividing by year...")
-    for (const year of years) {
-      //creates a new document for each year
-      let newYear = await Year.create({
-        year: year,
-        poems: [
-          ...poems.filter((poem) => poem.year === year).map((poem) => poem._id),
-        ],
-        tags: [],
-      })
-      await newYear.save()
+    let results = {}
+    let poems = await Poem.find()
+    for (const poem of poems) {
+      poem.yearlyOccurences = []
+      poem.save()
     }
+    let poemsByYear = await Poem.aggregate([
+      {
+        $group: {
+          _id: "$_id",
+          year: { $first: "$year" },
+          poems: {
+            $push: "$$ROOT",
+          },
+        },
+      },
+    ])
+
     console.log("Phase 1 ✅")
-
     console.log("Phase 2, counting...")
-    let populatedYears = await Year.find().populate({
-      path: "poems",
-    })
-    // console.log(populatedYears);
-    for (const year of populatedYears) {
-      
-      //for each year
-      for (const poem of year.poems) {
-        //for each poem in that year
-        let words = cleanText(poem.text.toLowerCase()) //return a clean wordlist
-        for (const word of words) {
-          //for each word in the poem
-          let yearTags = year.tags.map((tag) => tag.word) //the world contained in that year
 
-          if (yearTags.includes(word)) {
-            //if the tag is already in the year
-            let foundWord = await Tag.findOne({ word })
-            console.log(foundWord);
-            foundWord.yearlyOccurences.forEach((occ)=> {
-              if(occ.year === year.year) {
-                occ.occurences +=1
+    for (const year of poemsByYear) {
+      for (const poem of year.poems) {
+        for (const tagId of poem.tags) {
+          let tag = await Tag.findById(tagId)
+          if(tag.yearlyOccurences.filter(t => t.year === year.year).length > 0) {
+            let words = cleanText(poem.text.toLowerCase())
+            let counter = 0
+            words.forEach(w => {
+              if(w === tag.word) {
+                counter++
               }
+              console.log(counter);
             })
-            await foundWord.save()
-          } else {
-            //search for it
-            
-            let foundTag = await Tag.findOne({ word })
-            if (foundTag) { //if you find a tag with that number
-              foundTag.yearlyOccurences.forEach((occ)=> {
-                if(occ.year === year.year) {
-                  occ.occurences +=1
-                }
-              })
-              year.tags.push(foundTag._id) //add it to the list
-              // foundTag.yearlyOccurences = [...foundTag.yearlyOccurences, {year: year.year, occurences:} }] //counts occurences
-              await year.save()
-            } else {
-              let newTag = await new Tag({
-                word,
-                yearlyOccurences: [{
-                  year: year.year,
-                  occurences: 1,
-                }],
-                overallOccurences: 1,
-                color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
-                  Math.random() * 255
-                )}, ${Math.floor(Math.random() * 255)}, .3 )`,
-              })
-              await newTag.save()
+            for (const tagYear of tag.yearlyOccurences) {
+              if(tagYear.year === year.year) {
+                console.log(tagYear.year, year.year);
+                tagYear.occurences = counter
+                console.log(tagYear);
+              }
             }
+          } else {
+            tag.yearlyOccurences.push({year: year.year, occurences: 1})
           }
+
+          // console.log(tag);
+          await tag.save()
         }
       }
-      // console.log(year);
     }
+
     console.log("Phase 2 ✅")
-    // let listedResults = []
-    // for (const res of Object.keys(results)) {
-    //   listedResults.push({ word: res, occurences: results[res].occurences,color: results[res].color   })
-    // }
-    // listedResults.sort((a,b)=> b.occurences - a.occurences)
-    res.send("done ✅")
+
+    res.send(poemsByYear)
   } catch (error) {
     next(error)
   }
@@ -206,14 +191,23 @@ poemRoute.post("/stats/years", async (req, res, next) => {
 poemRoute.get("/stats/years", async (req, res, next) => {
   try {
     //group by year
-    let results = {}
-    let poems = await Poem.find()
-    let years = poems.map((poem) => poem.year)
-    years.forEach((year) => {
-      results[year] = poems.filter((poem) => poem.year === year)
+    let poemsByYear = await Poem.aggregate([
+      {
+        $group: {
+          // _id: "$_id",
+          _id: "$year" ,
+          poems: {
+            $push: "$$ROOT",
+          },
+        },
+      },
+    ])
+    let cleanPoems = poemsByYear.map(poem => {
+      poem.year = poem._id
+      delete poem._id
+      return poem
     })
-    //for each year, object prop
-    res.send(results)
+    res.send(cleanPoems)
   } catch (error) {
     next(error)
   }
@@ -230,7 +224,6 @@ poemRoute.get("/stats/:id", async (req, res, next) => {
         //if the word was already added
         results[word].occurences += 1
       } else {
-        console.log("new word created", word)
         results[word] = {
           occurences: 1,
           color: `rgba(${Math.floor(Math.random() * 255)}, ${Math.floor(
@@ -271,7 +264,6 @@ poemRoute.post("/", async (req, res, next) => {
 
 poemRoute.post("/text", multer().single("txt"), async (req, res, next) => {
   try {
-    // console.log(req.file)
     let fileToString = req.file.buffer.toString()
     let title
     let text
@@ -358,7 +350,7 @@ poemRoute.post(
   async (req, res, next) => {
     try {
       let { files } = req
-      console.log(req.body)
+
       let added = []
       let counter = 0
       for (const file of files.html) {
