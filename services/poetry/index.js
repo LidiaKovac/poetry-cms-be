@@ -31,7 +31,7 @@ poemRoute.get("/", async (req, res, next) => {
           ? {
               $all: tags.split(" "),
             }
-          : { $exists: true },
+          : { $where: "tags.lenght > 0" },
       },
       null,
       {
@@ -276,43 +276,18 @@ poemRoute.post("/", async (req, res, next) => {
     let newPoem = new Poem({ ...req.body, title })
     let { _id } = await newPoem.save()
     // const ok = await newPoem.save()
-    res.send({ _id })
+    res.status(201).send({ _id })
   } catch (error) {
-    next(error)
+    if(error.name.includes("ValidationError")) {
+      res.status(400).send(error.errors)
+    } else res.send(500)
   }
 })
 
-poemRoute.post("/text", multer().single("txt"), async (req, res, next) => {
-  try {
-    let fileToString = req.file.buffer.toString()
-    let title
-    let text
-    if (fileToString.includes("<big>")) {
-      title = getCapitalizedName(
-        fileToString.split("<big>")[1].split("</big>")[0]
-      )
-    } else {
-      title = "Untitled"
-    }
-    if (fileToString.includes("<poem>")) {
-      text = fileToString.split("<poem>")[1].split("</poem>")[0]
-    } else {
-      text = fileToString
-    }
-    let newPoem = new Poem({
-      author: req.query.author,
-      text: text.replaceAll("\r", "\n"),
-      title,
-    })
-    const { _id } = await newPoem.save()
-    res.send({ _id })
-  } catch (error) {
-    next(error)
-  }
-})
+
 
 poemRoute.post(
-  "/textMulti",
+  "/text",
   multer().fields([{ name: "txt" }, { name: "src" }, { name: "year" }]),
   async (req, res, next) => {
     try {
@@ -357,7 +332,7 @@ poemRoute.post(
         added.push(newPoem._id)
         counter += 1
       }
-      res.send({ added, counter })
+      res.status(201).send({ added, counter })
     } catch (error) {
       next(error)
     }
@@ -375,25 +350,28 @@ poemRoute.post(
       let counter = 0
       for (const file of files.html) {
         let fileToString = file.buffer.toString()
-        let title = fileToString.split("<h1>")[1].split("</h1>")[0]
-        let text = fileToString
+        if(fileToString.includes("<h1>" && "<p>")) {
+
+          let title = fileToString.split("<h1>")[1].split("</h1>")[0]
+          let text = fileToString
           .split("<p>")[1]
           .split("</p>")[0]
           .replaceAll("<p>", "<br><br>")
           .replaceAll("<br>", "\n")
           .replaceAll("<br/ >", "\n")
-        let newPoem = new Poem({
-          author: req.query.author,
-          text: text,
-          title,
-          source: req.body.src,
-          year: req.body.year,
-        })
-        await newPoem.save()
-        added.push(newPoem._id)
-        counter += 1
-      }
-      res.send({ added, counter })
+          let newPoem = new Poem({
+            author: req.query.author,
+            text: text,
+            title,
+            source: req.body.src,
+            year: req.body.year,
+          })
+          await newPoem.save()
+          added.push(newPoem._id)
+          counter += 1
+          res.status(201).send({ added, counter })
+        } else res.status(400).send({message: "HTML must contain an <h1> and a <p>"})
+        }
     } catch (error) {
       next(error)
     }
