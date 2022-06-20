@@ -31,7 +31,7 @@ poemRoute.get("/", async (req, res, next) => {
           ? {
               $all: tags.split(" "),
             }
-          : { $where: "tags.lenght > 0" },
+          : { $exists: true },
       },
       null,
       {
