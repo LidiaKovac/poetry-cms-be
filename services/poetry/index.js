@@ -8,9 +8,9 @@ export const poemRoute = Router()
 
 poemRoute.get("/", async (req, res, next) => {
   try {
-    let pageSize = 50
+    let pageSize = 15
     let { sort, title, source, tags, page } = req.query
-    // console.log(req.query)
+    console.log(pageSize * (Number(page) - 1))
     let field
     let order
     if (sort) {
@@ -37,33 +37,28 @@ poemRoute.get("/", async (req, res, next) => {
       {
         sort: sort ? { [field]: order } : {},
         limit: pageSize,
-        offset: page > 1 ? pageSize + page : 0,
+        skip: (pageSize * (Number(page) - 1)),
       }
     ).populate({
       path: "tags",
       select: ["word", "color"],
       options: { limit: 5 },
+      perDocumentLimit: 5
     })
-    // let { query } = req
-    // let filtered = []
-    // if (query.tag) {
-    //   filtered = poems.filter((poem) => {
-    //     let isMatch = true
-
-    //     for (const tag of query.tag.split(" ")) {
-    //       if (poem.tags.map((t) => t.word).includes(tag)) {
-    //         continue
-    //       } else isMatch = false
-    //     }
-    //     return isMatch
-    //   })
-    // }
     res.send(poems)
   } catch (error) {
     next(error)
   }
 })
 
+poemRoute.get("/count", async(req,res,next)=> {
+  try {
+    let count = await Poem.count()
+    res.send({count})
+  } catch (error) {
+    next(error)
+  }
+})
 
 poemRoute.get("/single/:id", async (req, res, next) => {
   try {
@@ -393,4 +388,14 @@ poemRoute.put("/clean", async (req, res, next) => {
     })
     res.send("done")
   } catch (error) {}
+})
+
+
+poemRoute.delete("/:id", async(req,res,next)=> {
+  try {
+    await Poem.findByIdAndDelete(req.params.id)
+    res.send(204)
+  } catch (error) {
+    next(error)
+  }
 })
