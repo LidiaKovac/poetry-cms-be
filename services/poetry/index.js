@@ -8,16 +8,19 @@ export const poemRoute = Router()
 
 poemRoute.get("/", async (req, res, next) => {
   try {
-    let pageSize = 15
-    let { sort, title, source, tags, page } = req.query
-    console.log(pageSize * (Number(page) - 1))
+    let { sort, title, source, tags, page, size } = req.query
     let field
     let order
     if (sort) {
       field = sort.split("_")[0]
       order = sort.split("_")[1] === "asc" ? 1 : -1
     }
-    let poems = await Poem.find(
+    console.log(      {
+        sort: sort ? { _id: 1, [field]: order} : {_id: 1},
+        skip: (Number(size) * (Number(page) - 1)),
+        limit: Number(size),
+      })
+    Poem.find(
       {
         title: {
           $regex: title || "",
@@ -32,29 +35,37 @@ poemRoute.get("/", async (req, res, next) => {
               $all: tags.split(" "),
             }
           : { $exists: true },
-      },
-      null,
-      {
-        sort: sort ? { [field]: order } : {},
-        limit: pageSize,
-        skip: (pageSize * (Number(page) - 1)),
       }
-    ).populate({
-      path: "tags",
-      select: ["word", "color"],
-      options: { limit: 5 },
-      perDocumentLimit: 5
-    })
-    res.send(poems)
+
+      // {
+      //   sort: sort ? { [field]: order } : {},
+      //   skip: (Number(size) * (Number(page) - 1)),
+      //   limit: Number(size),
+      // }
+    )
+      .populate({
+        path: "tags",
+        select: ["word", "color"],
+        options: { limit: 5 },
+        perDocumentLimit: 5,
+      })
+      .sort({ [field]: order, _id: 1 }) //sorting by _id is required in order to guarantee consistency
+      .skip(size * (page - 1))
+      .limit(size)
+      .exec((err, poems) => {
+        if (err) res.send(500, err)
+        else res.send(poems)
+      })
+    
   } catch (error) {
     next(error)
   }
 })
 
-poemRoute.get("/count", async(req,res,next)=> {
+poemRoute.get("/count", async (req, res, next) => {
   try {
     let count = await Poem.count()
-    res.send({count})
+    res.send({ count })
   } catch (error) {
     next(error)
   }
@@ -67,6 +78,15 @@ poemRoute.get("/single/:id", async (req, res, next) => {
       path: "tags",
       select: ["word", "color"],
     })
+    res.send(poem)
+  } catch (error) {
+    next(error)
+  }
+})
+poemRoute.put("/single/:id", async (req, res, next) => {
+  try {
+    let { id } = req.params
+    let poem = await Poem.findByIdAndUpdate(id, req.body)
     res.send(poem)
   } catch (error) {
     next(error)
@@ -273,13 +293,11 @@ poemRoute.post("/", async (req, res, next) => {
     // const ok = await newPoem.save()
     res.status(201).send({ _id })
   } catch (error) {
-    if(error.name.includes("ValidationError")) {
+    if (error.name.includes("ValidationError")) {
       res.status(400).send(error.errors)
     } else res.send(500)
   }
 })
-
-
 
 poemRoute.post(
   "/text",
@@ -345,15 +363,14 @@ poemRoute.post(
       let counter = 0
       for (const file of files.html) {
         let fileToString = file.buffer.toString()
-        if(fileToString.includes("<h1>" && "<p>")) {
-
+        if (fileToString.includes("<h1>" && "<p>")) {
           let title = fileToString.split("<h1>")[1].split("</h1>")[0]
           let text = fileToString
-          .split("<p>")[1]
-          .split("</p>")[0]
-          .replaceAll("<p>", "<br><br>")
-          .replaceAll("<br>", "\n")
-          .replaceAll("<br/ >", "\n")
+            .split("<p>")[1]
+            .split("</p>")[0]
+            .replaceAll("<p>", "<br><br>")
+            .replaceAll("<br>", "\n")
+            .replaceAll("<br/ >", "\n")
           let newPoem = new Poem({
             author: req.query.author,
             text: text,
@@ -365,8 +382,11 @@ poemRoute.post(
           added.push(newPoem._id)
           counter += 1
           res.status(201).send({ added, counter })
-        } else res.status(400).send({message: "HTML must contain an <h1> and a <p>"})
-        }
+        } else
+          res
+            .status(400)
+            .send({ message: "HTML must contain an <h1> and a <p>" })
+      }
     } catch (error) {
       next(error)
     }
@@ -390,8 +410,19 @@ poemRoute.put("/clean", async (req, res, next) => {
   } catch (error) {}
 })
 
+poemRoute.put("/convertYears", async (req, res, next) => {
+  try {
+    let allPoems = await Poem.find({})
+    for (const p of allPoems) {
+      p.year = Number(p.year)
+      await p.save()
+    }
 
-poemRoute.delete("/:id", async(req,res,next)=> {
+    res.send("done")
+  } catch (error) {}
+})
+
+poemRoute.delete("/:id", async (req, res, next) => {
   try {
     await Poem.findByIdAndDelete(req.params.id)
     res.send(204)

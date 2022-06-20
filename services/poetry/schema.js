@@ -21,7 +21,8 @@ const poemSchema = new mongoose.Schema({
         type: Number,
         required: false
     },
-    tags: [{ type: mongoose.Types.ObjectId, ref: 'Tag' }]
-})
+    tags: [{ type: mongoose.Types.ObjectId, ref: 'Tag' }],
+    
+}, {collection: "poems_v2"})
 
 export default mongoose.model("Poem", poemSchema)
