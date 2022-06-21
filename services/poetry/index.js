@@ -422,7 +422,7 @@ poemRoute.put("/convertYears", async (req, res, next) => {
   } catch (error) {}
 })
 
-poemRoute.delete("/:id", async (req, res, next) => {
+poemRoute.delete("/single/:id", async (req, res, next) => {
   try {
     await Poem.findByIdAndDelete(req.params.id)
     res.send(204)
