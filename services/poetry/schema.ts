@@ -1,6 +1,6 @@
 import mongoose from "mongoose"
 
-const poemSchema = new mongoose.Schema({
+const poemSchema = new mongoose.Schema<IPoem>({
     author: {
         type: String, 
         required: true
@@ -25,4 +25,4 @@ const poemSchema = new mongoose.Schema({
     
 }, {collection: "poems_v2"})
 
-export default mongoose.model("Poem", poemSchema)
+export default mongoose.model<IPoem>("Poem", poemSchema) as mongoose.Model<IPoem>
