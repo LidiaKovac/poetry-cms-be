@@ -22,7 +22,7 @@ let postedId
 
 describe("TESTS:", () => {
   beforeAll((done) => {
-    console.log(process.env.MONGO_URL + "test")
+    
     mongoose.connect(
       process.env.MONGO_URL + "test",
       {
@@ -110,9 +110,17 @@ describe("TESTS:", () => {
   })
   it("6. That GET / gives us back an array of at least one valid item", (done) => {
     supertest(server)
-      .get("/poems")
+      .get("/poems?sort=year_asc&page=1&size=15")
       .then((response) => {
         expect(response.body[0]._id).toBeTruthy()
+      })
+      .finally(() => done())
+  })
+  it("6b. That GET / with no query params gives back 400", (done) => {
+    supertest(server)
+      .get("/poems")
+      .then((response) => {
+        expect(response.status).toBe(400)
       })
       .finally(() => done())
   })
@@ -129,7 +137,7 @@ describe("TESTS:", () => {
       .put("/poems/single/" + postedId)
       .send({title: "EDITED"})
       .then((response) => {
-        // console.log(response);
+        
         expect(response.status).toBe(200)
         expect(response.body.title).toBe("EDITED")
       })

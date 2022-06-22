@@ -8,7 +8,11 @@ export const poemRoute = Router()
 
 poemRoute.get("/", async (req, res, next) => {
   try {
+    let defaultSize = 15
     let { sort, title, source, tags, page, size } = req.query
+    if(!sort || !page || !size) {
+      res.status(400).send("sort, page and size params are required!")
+    } else {
     let field
     let order
     if (sort) {
@@ -17,8 +21,8 @@ poemRoute.get("/", async (req, res, next) => {
     }
     console.log(      {
         sort: sort ? { _id: 1, [field]: order} : {_id: 1},
-        skip: (Number(size) * (Number(page) - 1)),
-        limit: Number(size),
+        skip: (Number(size) * (Number(page) - 1)) || 0,
+        limit: Number(size) || defaultSize,
       })
     Poem.find(
       {
@@ -56,7 +60,7 @@ poemRoute.get("/", async (req, res, next) => {
         if (err) res.send(500, err)
         else res.send(poems)
       })
-    
+    }
   } catch (error) {
     next(error)
   }
