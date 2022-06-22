@@ -2,33 +2,8 @@ import mongoose from "mongoose"
 import dotenv from "dotenv"
 import supertest from "supertest"
 import server from "../server.js"
+import Poem from "../services/poetry/schema"
 dotenv.config()
-
-// describe("Testing the tests", ()=> {
-//     beforeAll((done) => {
-//         mongoose
-//           .connect(process.env.MONGO_URL_TEST, {
-//             useNewUrlParser: true,
-//             useUnifiedTopology: true,
-//           })
-//           .then(() => {
-//             console.log("🧪 INITIATING TEST MODE 🧪")
-//             done()
-//         })
-//           .catch((e) => {
-//             console.log("❌ CONNECTION FAILED! Error: ", e)
-//           })
-//       })
-//       afterAll((done)=> {
-//         mongoose.disconnect()
-//         console.log("🧪 TEST MODE CLOSING 🧪")
-//         done()
-//     })
-//     it("check that true is true", (done)=> {
-//         expect(true).toBe(true)
-//         done()
-//     })
-// })
 
 const validBody = {
   author: "Author Name",
@@ -42,6 +17,8 @@ const invalidBody = {
   title: "Poem Title",
   text: "Poem",
 }
+
+let postedId
 
 describe("TESTS:", () => {
   beforeAll((done) => {
@@ -59,15 +36,20 @@ describe("TESTS:", () => {
     )
   })
   afterAll((done) => {
-    mongoose.connection.close().then(() => {
-      done()
+    Poem.deleteMany().then(() => {
+      mongoose.connection.close().then(() => {
+        done()
+      })
     })
   })
   it("1. That POST / with valid body gives 201 status", (done) => {
     supertest(server)
       .post("/poems")
       .send(validBody)
-      .then((response) => expect(response.status).toBe(201))
+      .then((response) => {
+        postedId = response.body._id
+        expect(response.status).toBe(201)
+      })
 
       .finally(() => done())
   })
@@ -115,6 +97,42 @@ describe("TESTS:", () => {
       .field("year", "2000")
       .then((response) => expect(response.status).toBe(201))
 
+      .finally(() => done())
+  })
+  it("5. That GET /count gives us back a number", (done) => {
+    supertest(server)
+      .get("/poems/count")
+      .then((response) => {
+        expect(typeof response.body.count).toBe(typeof 10)
+      })
+
+      .finally(() => done())
+  })
+  it("6. That GET / gives us back an array of at least one valid item", (done) => {
+    supertest(server)
+      .get("/poems")
+      .then((response) => {
+        expect(response.body[0]._id).toBeTruthy()
+      })
+      .finally(() => done())
+  })
+  it("7. That GET /single/:id gives us back a single element", (done) => {
+    supertest(server)
+      .get("/poems/single/" + postedId)
+      .then((response) => {
+        expect(response.status).toBe(200)
+      })
+      .finally(() => done())
+  })
+  it("8. That PUT /single/:id gives us back 200 AND the edited object", (done) => {
+    supertest(server)
+      .put("/poems/single/" + postedId)
+      .send({title: "EDITED"})
+      .then((response) => {
+        // console.log(response);
+        expect(response.status).toBe(200)
+        expect(response.body.title).toBe("EDITED")
+      })
       .finally(() => done())
   })
 })

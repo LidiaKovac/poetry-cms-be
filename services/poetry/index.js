@@ -78,16 +78,25 @@ poemRoute.get("/single/:id", async (req, res, next) => {
       path: "tags",
       select: ["word", "color"],
     })
-    res.send(poem)
+    console.log(poem);
+    if(poem === null) {
+      res.status(204).send()
+    } else {
+      res.send(poem)
+    }
   } catch (error) {
+    console.log(error);
     next(error)
   }
 })
 poemRoute.put("/single/:id", async (req, res, next) => {
   try {
     let { id } = req.params
-    let poem = await Poem.findByIdAndUpdate(id, req.body)
-    res.send(poem)
+    console.log(req.body);
+    let poem = await Poem.findByIdAndUpdate(id, req.body, {returnDocument: 'after'})
+    // console.log(poem);
+    if(poem._id) res.send(poem)
+    else res.status(400).send("Something went wrong")
   } catch (error) {
     next(error)
   }
@@ -410,17 +419,6 @@ poemRoute.put("/clean", async (req, res, next) => {
   } catch (error) {}
 })
 
-poemRoute.put("/convertYears", async (req, res, next) => {
-  try {
-    let allPoems = await Poem.find({})
-    for (const p of allPoems) {
-      p.year = Number(p.year)
-      await p.save()
-    }
-
-    res.send("done")
-  } catch (error) {}
-})
 
 poemRoute.delete("/single/:id", async (req, res, next) => {
   try {
