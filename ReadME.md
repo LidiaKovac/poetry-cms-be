@@ -13,8 +13,8 @@
 | name  | req.|  explanation       | options |
 |-------|---------|----------------|---------|
 | source|   ❌   | Isolate by book | Dikter, Framtidens skugga, Landet som icke är, Rosaltaret, Septemberlyran, Tankar om naturen
-| sort  |   ❌   | Prop to sort by | title_asc, title_desc, year_asc, year_desc, author_asc, author_desc
+| sort  |   ✔️   | Prop to sort by | title_asc, title_desc, year_asc, year_desc, author_asc, author_desc
 | tags  |   ❌   | Tags to include| multiple, by id
 | title |   ❌   | Search by title | Any string
-| page  |   ❌   | Page number | Any number
-| size  |   ❌   | Page size | Any number
+| page  |   ✔️   | Page number | Any number
+| size  |   ✔️   | Page size | Any number
