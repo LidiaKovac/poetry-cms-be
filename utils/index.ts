@@ -30,9 +30,9 @@ export const cleanText = (text:string) => {
 
     // .replaceAll("<br", "")
     .split(" ")
-    .filter((word) => word.length > 1)
+    .filter((word:string) => word.length > 1)
     // .filter((word) => !wordsToIgnore.includes(word))
-    .filter((word) => isNaN(word as unknown as number))
+    .filter((word:string) => isNaN(word as unknown as number))
 
     
     let stemmer = new StemmerSv()

@@ -1,5 +1,6 @@
 import { Request, Router } from "express"
 import { cleanText, getCapitalizedName } from "../../utils/index.js"
+import {SortOrder} from "mongoose"
 import multer from "multer"
 import Poem from "./schema.js"
 import Tag from "../tags/schema.js"
@@ -51,7 +52,7 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
           options: { limit: 5 },
           perDocumentLimit: 5,
         })
-        .sort({ [field as string]: order, _id: 1 }) //sorting by _id is required in order to guarantee consistency
+        .sort({ [field as string]: order as SortOrder, _id: 1 }) //sorting by _id is required in order to guarantee consistency
         .skip(Number(size) * (Number(page) - 1))
         .limit(Number(size))
       res.send(poems)

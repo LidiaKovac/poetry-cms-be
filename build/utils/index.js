@@ -1,14 +1,10 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.cleanText = exports.getCapitalizedName = void 0;
-const lang_sv_1 = require("@nlpjs/lang-sv");
-const getCapitalizedName = (string) => {
+import { StemmerSv, StopwordsSv } from "@nlpjs/lang-sv";
+export const getCapitalizedName = (string) => {
     let words = string.split(" ");
     words = words.map((w) => w.toLowerCase());
     return words.map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 };
-exports.getCapitalizedName = getCapitalizedName;
-const cleanText = (text) => {
+export const cleanText = (text) => {
     let cleanText = text
         .replaceAll("\r", " ")
         .replaceAll("\n", " ")
@@ -34,9 +30,8 @@ const cleanText = (text) => {
         .filter((word) => word.length > 1)
         // .filter((word) => !wordsToIgnore.includes(word))
         .filter((word) => isNaN(word));
-    let stemmer = new lang_sv_1.StemmerSv();
-    stemmer.stopwords = new lang_sv_1.StopwordsSv();
+    let stemmer = new StemmerSv();
+    stemmer.stopwords = new StopwordsSv();
     let noSWText = stemmer.stopwords.removeStopwords(cleanText);
     return stemmer.stem(noSWText);
 };
-exports.cleanText = cleanText;

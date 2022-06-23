@@ -1,7 +1,8 @@
-import mongoose from "mongoose"
+import mongoose, {ConnectOptions} from "mongoose"
 import dotenv from "dotenv"
 import supertest from "supertest"
 import server from "../server.js"
+
 import Poem from "../services/poetry/schema"
 dotenv.config()
 
@@ -18,17 +19,18 @@ const invalidBody = {
   text: "Poem",
 }
 
-let postedId
+let postedId:mongoose.Types.ObjectId
+const options = {
+  useNewUrlParser: true,
+} as ConnectOptions
+
 
 describe("TESTS:", () => {
   beforeAll((done) => {
     
     mongoose.connect(
       process.env.MONGO_URL + "test",
-      {
-        useNewUrlParser: true,
-        // useUnifiedTopology: true,
-      },
+      options,
       () => {
         console.log("🧪 INITIATING TEST MODE 🧪")
         done()
