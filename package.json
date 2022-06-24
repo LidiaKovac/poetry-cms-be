@@ -49,7 +49,7 @@
     ]
   },
   "scripts": {
-    "start": "node ./build",
+    "start": "npm run compile node ./build",
     "__dev": "nodemon index.js",
     "watch": "cross-env NODE_OPTIONS=--experimental-vm-modules  jest --watch ./build ",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles",
