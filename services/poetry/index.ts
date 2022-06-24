@@ -48,9 +48,17 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
         //   limit: Number(size),
         // }
       )
-        .populate("tags", ["word", "color"], "Tag", {
-          options: { limit: 5 },
-          perDocumentLimit: 5,
+        // .populate("tags", ["word", "color"], "Tag", {
+        //   limit: 5 ,
+        //   perDocumentLimit: 5,
+        // })
+        .populate({
+          path: "tags",
+          select: ["word", "color"],
+          options: {
+            limit: 5
+          },
+          perDocumentLimit: 5
         })
         .sort({ [field as string]: order as SortOrder, _id: 1 }) //sorting by _id is required in order to guarantee consistency
         .skip(Number(size) * (Number(page) - 1))
