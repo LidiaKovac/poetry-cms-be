@@ -48,7 +48,7 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
         //   limit: Number(size),
         // }
       )
-        .populate("tags", ["word", "color"], "Tag", {
+        .populate("tags", ["word", "color"], Tag, {
           options: { limit: 5 },
           perDocumentLimit: 5,
         })
