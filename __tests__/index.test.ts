@@ -101,15 +101,15 @@ describe("TESTS:", () => {
 
       .finally(() => done())
   })
-  it("5. That GET /count gives us back a number", (done) => {
-    supertest(server)
-      .get("/poems/count")
-      .then((response) => {
-        expect(typeof response.body.count).toBe(typeof 10)
-      })
+  // it("5. That GET /count gives us back a number", (done) => {
+  //   supertest(server)
+  //     .get("/poems/count")
+  //     .then((response) => {
+  //       expect(typeof response.body.count).toBe(typeof 10)
+  //     })
 
-      .finally(() => done())
-  })
+  //     .finally(() => done())
+  // })
   it("6. That GET / gives us back an array of at least one valid item", (done) => {
     supertest(server)
       .get("/poems?sort=year_asc&page=1&size=15")

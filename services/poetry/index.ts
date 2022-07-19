@@ -1,6 +1,6 @@
 import { Request, Router } from "express"
 import { cleanText, getCapitalizedName } from "../../utils/index.js"
-import {SortOrder} from "mongoose"
+import { SortOrder } from "mongoose"
 import multer from "multer"
 import Poem from "./schema.js"
 import Tag from "../tags/schema.js"
@@ -25,33 +25,25 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
         skip: (Number(size) * (Number(page) - 1)) || 0,
         limit: Number(size) || defaultSize,
       })
-      let poems: Array<IPoem> = await Poem.find(
-        {
-          title: {
-            $regex: title || "",
-            $options: "i",
-          },
-          source: {
-            $regex: source || "",
-            $options: "i",
-          },
-          tags: tags
-            ? {
-              $all: tags.split(" "),
-            }
-            : { $exists: true },
-        }
+      let options = {
+        title: {
+          $regex: title || "",
+          $options: "i",
+        },
+        source: {
+          $regex: source || "",
+          $options: "i",
+        },
+        tags: tags
+          ? {
+            $all: tags.split(" "),
+          }
+          : { $exists: true },
 
-        // {
-        //   sort: sort ? { [field]: order } : {},
-        //   skip: (Number(size) * (Number(page) - 1)),
-        //   limit: Number(size),
-        // }
+      }
+      let poems: Array<IPoem> = await Poem.find(
+        options
       )
-        // .populate("tags", ["word", "color"], "Tag", {
-        //   limit: 5 ,
-        //   perDocumentLimit: 5,
-        // })
         .populate({
           path: "tags",
           select: ["word", "color"],
@@ -63,21 +55,14 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
         .sort({ [field as string]: order as SortOrder, _id: 1 }) //sorting by _id is required in order to guarantee consistency
         .skip(Number(size) * (Number(page) - 1))
         .limit(Number(size))
-      res.send(poems)
+      let count: number = await Poem.find(options).count()
+      res.send({ poems, count })
     }
   } catch (error) {
     next(error)
   }
 })
 
-poemRoute.get("/count", async (req, res, next) => {
-  try {
-    let count = await Poem.count()
-    res.send({ count })
-  } catch (error) {
-    next(error)
-  }
-})
 
 poemRoute.get("/single/:id", async (req, res, next) => {
   try {
@@ -101,7 +86,7 @@ poemRoute.put("/single/:id", async (req, res, next) => {
   try {
     let { id } = req.params
     console.log(req.body);
-    let poem:IPoem | null = await Poem.findByIdAndUpdate(id, req.body, { returnDocument: 'after' })
+    let poem: IPoem | null = await Poem.findByIdAndUpdate(id, req.body, { returnDocument: 'after' })
     // console.log(poem);
     if (poem?._id!) res.send(poem)
     else res.status(400).send("Something went wrong")
@@ -168,7 +153,7 @@ poemRoute.post("/stats", async (req, res, next) => {
 
 poemRoute.get("/stats", async (req, res, next) => {
   try {
-    let stats = await Tag.find().sort({ occurences: -1 })
+    let stats = await Tag.find().sort({ overallOccurences: -1 })
     res.send(stats)
   } catch (error) {
     next(error)
@@ -177,89 +162,106 @@ poemRoute.get("/stats", async (req, res, next) => {
 
 poemRoute.post("/stats/years", async (req, res, next) => {
   try {
-    // console.log("Grab some coffee, this might take a while!")
-    // console.log("Phase 1, resetting the counter and dividing by year...")
-    // let results = {}
-    // let poems:Array<IPoem> = await Poem.find()
-    // for (const poem of poems) {
-    //   poem.yearlyOccurences = []
-    //   poem.save()
-    // }
-    // let poemsByYear = await Poem.aggregate([
-    //   {
-    //     $group: {
-    //       _id: "$_id",
-    //       year: { $first: "$year" },
-    //       poems: {
-    //         $push: "$$ROOT",
-    //       },
-    //     },
-    //   },
-    // ])
+    console.log("Grab some coffee, this might take a while!")
+    console.log("Phase 1, dividing by year...")
+    await Year.deleteMany()
 
-    // console.log("Phase 1 ✅")
-    // console.log("Phase 2, counting...")
-
-    // for (const year of poemsByYear) {
-    //   for (const poem of year.poems) {
-    //     for (const tagId of poem.tags) {
-    //       let tag = await Tag.findById(tagId)
-    //       if (
-    //         tag.yearlyOccurences.filter((t) => t.year === year.year).length > 0
-    //       ) {
-    //         let words = cleanText(poem.text.toLowerCase())
-    //         let counter = 0
-    //         words.forEach((w) => {
-    //           if (w === tag.word) {
-    //             counter++
-    //           }
-    //           console.log(counter)
-    //         })
-    //         for (const tagYear of tag.yearlyOccurences) {
-    //           if (tagYear.year === year.year) {
-    //             console.log(tagYear.year, year.year)
-    //             tagYear.occurences = counter
-    //             console.log(tagYear)
-    //           }
-    //         }
-    //       } else {
-    //         tag.yearlyOccurences.push({ year: year.year, occurences: 1 })
-    //       }
-
-    //       // console.log(tag);
-    //       await tag.save()
-    //     }
-    //   }
-    // }
-
-    // console.log("Phase 2 ✅")
-
-    // res.send(poemsByYear)
-  } catch (error) {
-    next(error)
-  }
-})
-
-poemRoute.get("/stats/years", async (req, res, next) => {
-  try {
-    //group by year
     let poemsByYear = await Poem.aggregate([
       {
         $group: {
-          // _id: "$_id",
           _id: "$year",
+          year: { $first: "$year" },
           poems: {
             $push: "$$ROOT",
           },
         },
       },
     ])
-    let cleanPoems = poemsByYear.map((poem) => {
-      poem.year = poem._id
-      delete poem._id
-      return poem
-    })
-    res.send(cleanPoems)
+    let results: YearResults = {}
+    for (const year of poemsByYear) {
+      let newYear = await new Year()
+      for (const poem of year.poems) {
+
+        if (Object.keys(results).includes(year.year)) {
+          results[(year.year) as keyof YearResults] = [...results[year.year], ...poem.tags]
+
+        } else results[(year.year) as keyof YearResults] = [...poem.tags]
+      }
+
+      newYear.year = year.year,
+        newYear.tags = results[year.year]
+      newYear.poems = year.poems
+      await newYear.save()
+    }
+    console.log("Phase 1 ✅ \nStarting phase 2, cleaning tags.")
+    let years = await Year.find()
+    for (const year of years) {
+      for (const tag of year.tags!) {
+
+        let foundTag = await Tag.findByIdAndUpdate(tag, { yearlyOccurences: [] })
+        await foundTag!.save()
+      }
+
+    }
+    console.log("Phase 2 ✅ \nStarting phase 3, sorting.")
+    for (const year of years) {
+      console.log("Phase 3 ⏲️ \n Checking ", year.year)
+      for (const poem of year.poems!) {
+        let currentPoem = await Poem.findById(poem)
+        let currCleanText = cleanText(currentPoem!.text)
+        for (const word of currCleanText) {
+          console.log(word);
+          let foundTag = await Tag.findOne({ word: word.toLowerCase() })
+          if (foundTag !== null) {
+            let yearsInTag = foundTag!.yearlyOccurences.map(t => t.year)
+            if (yearsInTag.includes(year.year)) {
+              for (const tagYear of foundTag!.yearlyOccurences) {
+                if (tagYear.year === year.year) {
+                  tagYear.occurences += 1
+                }
+              }
+            } else foundTag!.yearlyOccurences.push({ year: year.year, occurences: 1 })
+            await foundTag!.save()
+          }
+        }
+      }
+    }
+    console.log("Phase 3 ✅ \nDone!")
+
+    res.send(results)
+
+  } catch (error) {
+    next(error)
+  }
+})
+
+poemRoute.get("/stats/years/:year", async (req, res, next) => {
+  try {
+    //group by year
+    // let poemsByYear = await Poem.aggregate([
+    //   {
+    //     $group: {
+    //       // _id: "$_id",
+    //       _id: "$year",
+    //       poems: {
+    //         $push: "$$ROOT",
+    //       },
+    //     },
+    //   },
+    // ])
+    let years = await Year.find().populate(['tags', 'poems'])
+    for (const year of years) {
+      for (const poem of year.poems) {
+        for (const tag of poem.tags) {
+          tag.yearlyOccurences = tag.yearlyOccurences.filter(occ => occ.year === req.params.year)
+
+        }
+      }
+    }
+
+
+
+    res.send(years)
   } catch (error) {
     next(error)
   }
@@ -267,8 +269,8 @@ poemRoute.get("/stats/years", async (req, res, next) => {
 
 poemRoute.get("/stats/:id", async (req, res, next) => {
   try {
-    let poem:IPoem | null = await Poem.findById(req.params.id)
-    let results:IResult = {}
+    let poem: IPoem | null = await Poem.findById(req.params.id)
+    let results: IResult = {}
 
     let words = cleanText(poem!.text.toLowerCase() as string)
     for (const word of words) {
@@ -309,7 +311,7 @@ poemRoute.post("/", async (req, res, next) => {
     let { _id } = await newPoem.save()
     // const ok = await newPoem.save()
     res.status(201).send({ _id })
-  } catch (error:any) {
+  } catch (error: any) {
     if (error.name.includes("ValidationError")) {
       res.status(400).send(error.errors)
     } else res.send(500)
@@ -321,7 +323,7 @@ poemRoute.post(
   multer().fields([{ name: "txt" }, { name: "src" }, { name: "year" }]),
   async (req, res, next) => {
     try {
-      let files  = req.files as IFile
+      let files = req.files as IFile
       let added = []
       let counter = 0
       for (const file of files!.txt) {
@@ -374,8 +376,8 @@ poemRoute.post(
   multer().fields([{ name: "html" }, { name: "src" }, { name: "year" }]),
   async (req, res, next) => {
     try {
-      
-      let files  = req.files as IFile
+
+      let files = req.files as IFile
 
       let added = []
       let counter = 0

@@ -32,6 +32,14 @@ class ITag {
     yearlyOccurences: Array<{ year: string, occurences: number }>
 }
 
+class IYear {
+    _id: import("mongoose").Types.ObjectId
+    year: string
+    tags: Array<{ year: string, occurences: number }> | Array<import("mongoose").Types.ObjectId>
+    poems: Array<IPoem> | Array<import("mongoose").Types.ObjectId>
+}
+
+
 class IResult {
     [key: string]: {
         occurences: number,
@@ -44,3 +52,8 @@ class IFile extends Express.Request.files {
     [fieldname: string]: Express.Multer.File[]
     
 } 
+
+
+class YearResults {
+    [fieldname: string]: Array<ITag>
+}
