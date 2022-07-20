@@ -21,11 +21,7 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
         field = sort.split("_")[0]
         order = sort.split("_")[1] === "asc" ? 1 : -1
       }
-      console.log({
-        sort: sort ? { _id: 1, [field as string]: order } : { _id: 1 },
-        skip: (Number(size) * (Number(page) - 1)) || 0,
-        limit: Number(size) || defaultSize,
-      })
+      
       let options = {
         title: {
           $regex: title || "",
@@ -72,7 +68,7 @@ poemRoute.get("/single/:id", async (req, res, next) => {
       path: "tags",
       select: ["word", "color"],
     })
-    console.log(poem);
+    
     if (poem === null) {
       res.status(204).send()
     } else {
@@ -86,7 +82,7 @@ poemRoute.get("/single/:id", async (req, res, next) => {
 poemRoute.put("/single/:id", async (req, res, next) => {
   try {
     let { id } = req.params
-    console.log(req.body);
+    
     let poem: IPoem | null = await Poem.findByIdAndUpdate(id, req.body, { returnDocument: 'after' })
     // console.log(poem);
     if (poem?._id!) res.send(poem)
@@ -142,7 +138,7 @@ poemRoute.post("/stats", async (req, res, next) => {
           
           currentPoemTags.push(tag._id)
           poem.tags = currentPoemTags
-          console.log(poem);
+          
           
           
         }
@@ -198,7 +194,7 @@ poemRoute.post("/stats", async (req, res, next) => {
         let currentPoem = await Poem.findById(poem)
         let currCleanText = cleanText(currentPoem!.text)
         for (const word of currCleanText) {
-          console.log(word);
+          
           let foundTag = await Tag.findOne({ word: word.toLowerCase() })
           if (foundTag !== null) {
             let yearsInTag = foundTag!.yearlyOccurences.map(t => t.year)
@@ -216,7 +212,7 @@ poemRoute.post("/stats", async (req, res, next) => {
     }
     console.log("Phase 3 ✅ \nStarting phase 4, sorting!")
     const sortCb = (a:ITag,b:ITag, i:number) => {
-      console.log(a);
+      
       if(a.yearlyOccurences[i] && b.yearlyOccurences[i]) return a.yearlyOccurences[i].occurences - b.yearlyOccurences[i].occurences
       else return 0
       
