@@ -104,7 +104,7 @@ poemRoute.post("/stats", async (req, res, next) => {
     console.log("Phase 1, resetting the counter...")
     for (const poem of poems) {
       poem.tags = []
-      await poem.save()
+      //await poem.save()
     }
     for (const tag of tags) {
       tag.overallOccurences = 0
@@ -116,15 +116,13 @@ poemRoute.post("/stats", async (req, res, next) => {
     for (const poem of poems) {
       let words = cleanText(poem.text.toLowerCase())
       for (const word of words) {
-        let tags = await Tag.find()
-        let wordsOnly = tags.map((t) => t.word) //makes an array of all the words in the db already
-
+        let foundWord = await Tag.findOne({ word })
         //checks if the tag is already in the database
-        if (wordsOnly.includes(word)) {
-          //if the world exists already
-          let foundWord = await Tag.findOne({ word })
+        if (foundWord) {
+          //if the word exists already
           foundWord!.overallOccurences += 1
           await foundWord!.save()
+          
         } else {
           let newTag = await new Tag({
             word,
@@ -135,37 +133,24 @@ poemRoute.post("/stats", async (req, res, next) => {
             )}, ${Math.floor(Math.random() * 255)}, .3 )`,
           })
           await newTag.save()
-        }
-        for (const tag of tags as ITag[]) {
-          const currentPoemTags = poem.tags as mongoose.Types.ObjectId[]
-          if (words.includes(tag.word) && !currentPoemTags.includes(tag._id)) {
-            currentPoemTags.push(tag._id)
-            poem.tags = currentPoemTags
-            await poem.save()
-          }
+          
         }
       }
+      for (const tag of tags as ITag[]) {
+        const currentPoemTags = poem.tags as mongoose.Types.ObjectId[]
+        if (words.includes(tag.word) && !currentPoemTags.includes(tag._id)) {
+          
+          currentPoemTags.push(tag._id)
+          poem.tags = currentPoemTags
+          console.log(poem);
+          
+          
+        }
+      }
+      await poem.save()
     }
-    console.log("Phase 2 ✅")
-
-    res.send("done ✅")
-  } catch (error) {
-    next(error)
-  }
-})
-
-poemRoute.get("/stats", async (req, res, next) => {
-  try {
-    let stats = await Tag.find().sort({ overallOccurences: -1 })
-    res.send(stats)
-  } catch (error) {
-    next(error)
-  }
-})
-
-poemRoute.post("/stats/years", async (req, res, next) => {
-  try {
-    console.log("Grab some coffee, this might take a while!")
+    console.log("Phase 2 ✅\n Moving on to yearly stats...")
+    console.log("Almost there... go have a walk, I'll be done soon!")
     console.log("Phase 1, dividing by year...")
     await Year.deleteMany()
 
@@ -206,7 +191,7 @@ poemRoute.post("/stats/years", async (req, res, next) => {
       }
 
     }
-    console.log("Phase 2 ✅ \nStarting phase 3, sorting.")
+    console.log("Phase 2 ✅ \nStarting phase 3, counting.")
     for (const year of years) {
       console.log("Phase 3 ⏲️ \n Checking ", year.year)
       for (const poem of year.poems!) {
@@ -229,29 +214,44 @@ poemRoute.post("/stats/years", async (req, res, next) => {
         }
       }
     }
-    console.log("Phase 3 ✅ \nDone!")
+    console.log("Phase 3 ✅ \nStarting phase 4, sorting!")
+    const sortCb = (a:ITag,b:ITag, i:number) => {
+      console.log(a);
+      if(a.yearlyOccurences[i] && b.yearlyOccurences[i]) return a.yearlyOccurences[i].occurences - b.yearlyOccurences[i].occurences
+      else return 0
+      
+    }
+    for(const year of years) {
+      const yearlyTags = year!.tags as ITag[]
+      for(let i = 0; i < yearlyTags.length; i++) {
+        for(let y = 0; y < yearlyTags[i].yearlyOccurences.length; y++) {
 
-    res.send(results)
+      yearlyTags.sort((a,b)=> sortCb(a,b,y))
+    }}
+    year!.tags = yearlyTags
+    await year.save()
+  }
+    
 
+    res.send("done ✅")
+  } catch (error) {
+    next(error)
+    console.log(error)
+  }
+})
+
+poemRoute.get("/stats", async (req, res, next) => {
+  try {
+    let stats = await Tag.find().sort({ overallOccurences: -1 })
+    res.send(stats)
   } catch (error) {
     next(error)
   }
 })
 
+
 poemRoute.get("/stats/years/:year", async (req, res, next) => {
   try {
-    //group by year
-    // let poemsByYear = await Poem.aggregate([
-    //   {
-    //     $group: {
-    //       // _id: "$_id",
-    //       _id: "$year",
-    //       poems: {
-    //         $push: "$$ROOT",
-    //       },
-    //     },
-    //   },
-    // ])
     let year = await Year.findOne({year: req.params.year}).populate(['tags', 'poems'])
 
       for (const poem of year!.poems! as IPoem[]) {
@@ -261,21 +261,9 @@ poemRoute.get("/stats/years/:year", async (req, res, next) => {
        
           const filteredTags = tag!.yearlyOccurences.filter(occ => occ.year === req.params.year)
           tag!.yearlyOccurences = filteredTags
-
-          await tag!.save()
         }
         
-        const sortCb = (a:ITag,b:ITag, i:number) => {
-          console.log(a);
-          if(b.yearlyOccurences[i]) return a.yearlyOccurences[i].occurences - b.yearlyOccurences[i].occurences
-          else return 0
-          
-        }
-        const yearlyTags = year!.tags as ITag[]
-        for(let i = 0; i < yearlyTags.length; i++) {
-          yearlyTags.sort((a,b)=> sortCb(a,b,i))
-        }
-        year!.tags = yearlyTags
+        
           
         
   }
