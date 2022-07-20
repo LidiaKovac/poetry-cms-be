@@ -1,10 +1,11 @@
 import { Request, Router } from "express"
 import { cleanText, getCapitalizedName } from "../../utils/index.js"
-import { SortOrder } from "mongoose"
+import mongoose, { SortOrder } from "mongoose"
 import multer from "multer"
 import Poem from "./schema.js"
 import Tag from "../tags/schema.js"
 import Year from "../years/schema.js"
+import { ObjectId } from "mongodb"
 export const poemRoute = Router()
 
 poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
@@ -135,9 +136,11 @@ poemRoute.post("/stats", async (req, res, next) => {
           })
           await newTag.save()
         }
-        for (const tag of tags) {
-          if (words.includes(tag.word) && !poem.tags.includes(tag._id)) {
-            poem.tags.push(tag._id)
+        for (const tag of tags as ITag[]) {
+          const currentPoemTags = poem.tags as mongoose.Types.ObjectId[]
+          if (words.includes(tag.word) && !currentPoemTags.includes(tag._id)) {
+            currentPoemTags.push(tag._id)
+            poem.tags = currentPoemTags
             await poem.save()
           }
         }
@@ -189,7 +192,7 @@ poemRoute.post("/stats/years", async (req, res, next) => {
       }
 
       newYear.year = year.year,
-        newYear.tags = results[year.year]
+      (newYear.tags as ITag[]) = results[year.year]
       newYear.poems = year.poems
       await newYear.save()
     }
@@ -249,19 +252,37 @@ poemRoute.get("/stats/years/:year", async (req, res, next) => {
     //     },
     //   },
     // ])
-    let years = await Year.find().populate(['tags', 'poems'])
-    for (const year of years) {
-      for (const poem of year.poems) {
-        for (const tag of poem.tags) {
-          tag.yearlyOccurences = tag.yearlyOccurences.filter(occ => occ.year === req.params.year)
+    let year = await Year.findOne({year: req.params.year}).populate(['tags', 'poems'])
 
+      for (const poem of year!.poems! as IPoem[]) {
+       
+        for (const id of poem.tags) {
+          const tag = await Tag.findById(id)
+       
+          const filteredTags = tag!.yearlyOccurences.filter(occ => occ.year === req.params.year)
+          tag!.yearlyOccurences = filteredTags
+
+          await tag!.save()
         }
-      }
-    }
+        
+        const sortCb = (a:ITag,b:ITag, i:number) => {
+          console.log(a);
+          if(b.yearlyOccurences[i]) return a.yearlyOccurences[i].occurences - b.yearlyOccurences[i].occurences
+          else return 0
+          
+        }
+        const yearlyTags = year!.tags as ITag[]
+        for(let i = 0; i < yearlyTags.length; i++) {
+          yearlyTags.sort((a,b)=> sortCb(a,b,i))
+        }
+        year!.tags = yearlyTags
+          
+        
+  }
 
 
 
-    res.send(years)
+    res.send(year)
   } catch (error) {
     next(error)
   }

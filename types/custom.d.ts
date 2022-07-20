@@ -21,7 +21,7 @@ class IPoem {
     text: string
     source: string
     year: number
-    tags: Array<import("mongoose").Types.ObjectId>
+    tags: Array<import("mongoose").Types.ObjectId> | Array<ITag>
 }
 
 class ITag {
@@ -35,7 +35,7 @@ class ITag {
 class IYear {
     _id: import("mongoose").Types.ObjectId
     year: string
-    tags: Array<{ year: string, occurences: number }> | Array<import("mongoose").Types.ObjectId>
+    tags: Array<ITag> | Array<import("mongoose").Types.ObjectId>
     poems: Array<IPoem> | Array<import("mongoose").Types.ObjectId>
 }
 
