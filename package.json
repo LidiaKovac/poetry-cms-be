@@ -31,6 +31,7 @@
     "multer": "^1.4.4",
     "node-nlp": "^4.23.4",
     "nodemon": "^2.0.15",
+    "passport-google-oauth20": "^2.0.0",
     "query-to-mongo": "^0.10.2",
     "supertest": "^6.2.3",
     "ts-jest": "^28.0.5",

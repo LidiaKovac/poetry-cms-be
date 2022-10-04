@@ -13,7 +13,7 @@ poemRoute.get("/", async (req: ReqWithQuery, res, next) => {
     let defaultSize = 15
     let { sort, title, source, tags, page, size } = req.query
     if (!sort || !page || !size) {
-      res.status(400).send("sort, page and size params are required!")
+      res.status(400).send({poems: [], count: 0, err: "sort, page and size params are required!"})
     } else {
       let field
       let order
