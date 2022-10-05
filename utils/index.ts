@@ -40,3 +40,8 @@ export const cleanText = (text:string) => {
     let noSWText = stemmer.stopwords.removeStopwords(cleanText)
     return stemmer.stem(noSWText)
 }
+
+
+export const addHoursToToday = (hours:number, date = new Date()) => {
+  return date.setTime(date.getTime() + (hours * 60 * 60 * 1000))
+}

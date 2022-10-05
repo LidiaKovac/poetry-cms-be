@@ -1,23 +1,14 @@
 // import mongoose from "mongoose"
 
+declare namespace Express {
+    interface ParsedQs {
+        [field: string]: string
 
-
-class ReqWithQuery extends express.Request {
-    query: APIQuery
+    }
+    interface Request {
+        user: IUser
+    }
 }
-
-
-
-class APIQuery extends ParsedQs {
-    sort: string
-    title: string
-    source: string
-    tags: string
-    page: string
-    size: string
-}
-
-
 
 class IPoem {
     _id?: import("mongoose").Types.ObjectId
@@ -27,6 +18,7 @@ class IPoem {
     source: string
     year: number
     tags: Array<import("mongoose").Types.ObjectId> | Array<ITag>
+    userID: import("mongoose").Types.ObjectId
 }
 
 class ITag {
@@ -55,8 +47,8 @@ class IResult {
 
 class IFile extends Express.Request.files {
     [fieldname: string]: Express.Multer.File[]
-    
-} 
+
+}
 
 
 class YearResults {

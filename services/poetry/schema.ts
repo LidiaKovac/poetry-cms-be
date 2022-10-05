@@ -1,8 +1,9 @@
+import { MongoServerClosedError } from "mongodb"
 import mongoose from "mongoose"
 
 const poemSchema = new mongoose.Schema<IPoem>({
     author: {
-        type: String, 
+        type: String,
         required: true
     },
     title: {
@@ -21,8 +22,11 @@ const poemSchema = new mongoose.Schema<IPoem>({
         type: Number,
         required: false
     },
-    tags: [{ type: mongoose.Types.ObjectId, ref: 'Tag' }],
-    
-}, {collection: "poems_v2"})
+    tags: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Tag' }],
+    userID: {
+        type: mongoose.Schema.Types.ObjectId, ref: "User"
+    }
+
+}, { collection: "poems_v2" })
 
 export default mongoose.model<IPoem>("Poem", poemSchema) as mongoose.Model<IPoem>
