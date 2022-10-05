@@ -1,7 +1,12 @@
 // import mongoose from "mongoose"
+
+
+
 class ReqWithQuery extends express.Request {
     query: APIQuery
 }
+
+
 
 class APIQuery extends ParsedQs {
     sort: string
@@ -56,4 +61,12 @@ class IFile extends Express.Request.files {
 
 class YearResults {
     [fieldname: string]: Array<ITag>
+}
+
+
+class IUser {
+    _id?: import("mongoose").Types.ObjectId
+    name: string
+    googleID: string
+    profilePic: string
 }
