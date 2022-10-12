@@ -16,7 +16,7 @@ userRoute.get("/login/callback", passport.authenticate("google", { failureRedire
 userRoute.get("/login", passport.authenticate("google", { scope: ["profile"] }))
 userRoute.get("/me", async (req, res, next) => {
   try {
-    const user = await verifyId(req.headers['authentication'] as string)
+    const user = await verifyId(req.headers['authorization'] as string)
     
     if(user) {
       let foundUser = await User.findById(user._id)

@@ -46,7 +46,7 @@ passport.serializeUser(function (user, next) {
 
 export const checkUser = async(req:Request,res:Response,next:NextFunction) => {
     try {
-        let token = req['headers'].authorization
+        let token = req['headers'].authorization as string
         if(!token) {
             res.sendStatus(400)
         } else {

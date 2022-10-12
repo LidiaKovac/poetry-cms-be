@@ -61,6 +61,7 @@ poemRoute.get("/", checkUser, async (req, res, next) => {
       res.send({ poems, count })
     }
   } catch (error) {
+    console.log(error)
     next(error)
   }
 })
