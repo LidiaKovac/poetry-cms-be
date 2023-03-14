@@ -9,7 +9,7 @@ import { ObjectId } from "mongodb"
 import { checkUser } from "../../utils/auth.js"
 export const poemRoute = Router()
 
-poemRoute.get("/", checkUser, async (req, res, next) => {
+poemRoute.get("/", /* checkUser,*/ async (req, res, next) => {
   try {
     let { sort, title, source, tags, page, size = 15 } = req.query as Express.ParsedQs
 
@@ -22,7 +22,6 @@ poemRoute.get("/", checkUser, async (req, res, next) => {
         field = sort.split("_")[0]
         order = sort.split("_")[1] === "asc" ? 1 : -1
       }
-      console.log(req.user._id);
 
       let options = {
         // userID: {
@@ -331,7 +330,7 @@ poemRoute.post("/", async (req, res, next) => {
 })
 
 poemRoute.post(
-  "/txt", checkUser,
+  "/txt", /*checkUser,*/
   multer().fields([{ name: "txt" }, { name: "src" }, { name: "year" }, { name: "author" }]),
   async (req, res, next) => {
     try {
