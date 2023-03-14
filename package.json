@@ -60,7 +60,7 @@
     ]
   },
   "scripts": {
-    "start": "npm run compile node ./build",
+    "start": "node ./build",
     "__dev": "nodemon index.js",
     "build": "tsc",
     "watch": "cross-env NODE_OPTIONS=--experimental-vm-modules  jest --watch ./build ",
