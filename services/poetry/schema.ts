@@ -1,4 +1,3 @@
-import { MongoServerClosedError } from "mongodb"
 import mongoose from "mongoose"
 
 const poemSchema = new mongoose.Schema<IPoem>({

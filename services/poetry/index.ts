@@ -25,9 +25,9 @@ poemRoute.get("/", checkUser, async (req, res, next) => {
       console.log(req.user._id);
 
       let options = {
-        userID: {
-          $eq: req.user._id
-        },
+        // userID: {
+        //   $eq: req.user._id
+        // },
         title: {
           $regex: title || "",
           $options: "i",
@@ -344,7 +344,7 @@ poemRoute.post(
         let fileToString = file.buffer.toString()
         let title
         let text
-
+        
         if (fileToString.length <= 0) continue
         fileToString = fileToString.replaceAll("\\r", "\\n")
         if (fileToString.includes("<big>")) {
